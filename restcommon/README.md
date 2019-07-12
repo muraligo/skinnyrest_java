@@ -31,7 +31,6 @@ makes it simple for the user to only import this single jar.
 TODO
 - Complete RestUtil
 - Complete SkinnyRestSampleService and StoreResource
-- Create a GitHub project and repo with all of this and check it all in
 - Enhance SkinnyResource to handle remaining
 
 

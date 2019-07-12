@@ -22,6 +22,12 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
 public interface SkinnyResource {
+    /**
+     * Extracts parameters from a REST body.
+     * Extracts query parameters
+     * Renders a REST response body
+     * 
+     */
     default void handleResource(HttpExchange exchange) {
         URI requestURI = exchange.getRequestURI();
         String mthd = exchange.getRequestMethod();

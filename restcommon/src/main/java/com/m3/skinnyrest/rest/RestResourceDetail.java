@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collector;
 
+import com.m3.skinnyrest.SkinnyResource;
 import com.sun.net.httpserver.HttpServer;
 
 public class RestResourceDetail {
     private final String _name;
     private final String _basepath;
     private final List<RestHandlerDetail> _handlers = new ArrayList<RestHandlerDetail>();
+    private transient SkinnyResource _resource;
 
     public RestResourceDetail(String nm, String basep) {
         _name = nm;
@@ -30,4 +32,7 @@ public class RestResourceDetail {
                                                        .collect(Collector.of(ArrayList::new, ArrayList::add, (left, right) -> { left.addAll(right); return left; }));
         return result;
     }
+
+    public SkinnyResource getResource() { return _resource; }
+    public void setResource(SkinnyResource obj) { _resource = obj; }
 }

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URI;
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 
+import com.m3.skinnyrest.SkinnyResource;
 import com.m3.skinnyrest.annotations.CookieParam;
 import com.m3.skinnyrest.annotations.DELETE;
 import com.m3.skinnyrest.annotations.FormParam;
@@ -35,12 +37,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpPrincipal;
 import com.sun.net.httpserver.HttpServer;
 
-/**
- * Extracts parameters from a REST body.
- * Extracts query parameters
- * Renders a REST response body
- * 
- */
 public class RestUtil {
     public static final String CONTENT_TYPE_MULTIPART_FORM = "multipart/form-data";
     public static final String HEADER_CONTENT_TYPE = "Content-Type";
@@ -229,11 +225,25 @@ public class RestUtil {
                 }
             }
         }
-    	// TODO create an instance of the resource class and add it to the RestResourceDetail
-        // e.g. ApplicationResource apprs = new ApplicationResource(null, null);
-        // TODO Inject the RestResourceDetail for this class into the class-level somehow
-    	// TODO use the instance and the method "handleResource" to set the handler for the context
-        // e.g. resourcectxt.setHandler(apprs::handleResource);
+        Object obj = null;
+        try {
+            obj = clz.getDeclaredConstructor(RestResourceDetail.class).newInstance(retval);
+        } catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException ex) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] instantiation failed", ex);
+        } catch (NoSuchMethodException nsme) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] does not have a constructor with RestResourceDetail as argument", nsme);
+        }
+        if (obj == null) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] instantiation failed");
+        }
+        if (!(obj instanceof SkinnyResource)) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] does not seem to be a valid Resource");
+        }
+        SkinnyResource rsc = (SkinnyResource)obj;
+        retval.setResource(rsc);
+        for (RestHandlerDetail h : retval.getHandlers()) {
+            h.context().setHandler(rsc::handleResource);
+        }
         return retval;
     }
 
