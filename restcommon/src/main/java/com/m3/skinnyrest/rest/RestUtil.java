@@ -218,9 +218,11 @@ public class RestUtil {
                                 CookieParam annprm = (CookieParam)prmanns[jx];
                                 prmtype = RestParamType.COOKIE;
                                 prmname = annprm.value();
-                                prmdefault = annprm.defaultValue();
+                                prmdefault = null;
                             }
                         }
+                        if (prmdefault == null || "NONE".equalsIgnoreCase(prmdefault))
+                            prmdefault = null;
                         handler.addParameter(prmtype, prmname, prmdefault);
                     }
                 }

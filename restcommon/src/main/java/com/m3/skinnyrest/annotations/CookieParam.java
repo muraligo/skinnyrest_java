@@ -11,5 +11,4 @@ import java.lang.annotation.RetentionPolicy;
 @Documented
 public @interface CookieParam {
     String value();
-    String defaultValue();
 }

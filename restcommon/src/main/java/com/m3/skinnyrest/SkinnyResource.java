@@ -64,12 +64,6 @@ public interface SkinnyResource {
         pthix += basep.length();
         String mthpath = path.substring(pthix);
         RestResourceDetail rrd = getResourceDetail();
-        List<RestHandlerDetail> handlerdetails = rrd.findMatchingHandlers(mthpath, mthd);
-        if (handlerdetails == null || handlerdetails.isEmpty()) {
-            RestUtil.formErrorResponse(exchange, RestResponseCode.NOT_ACCEPTABLE, 
-                    "Unsupported path and method combination", getLogger());
-            return;
-        }
         List<String> contentTypeLst = null;
         String contentType = null;
         String boundary = null;
@@ -86,7 +80,17 @@ public interface SkinnyResource {
         if (contentTypeLst != null && !contentTypeLst.isEmpty()) {
             contentType = contentTypeLst.get(0); // first element must be the real content type
         }
+        // TODO Extract Accept-Type and pass in to callRealMethod
+        // TODO Extract OAuth2 header fields and pass in to callRealMethod
+        // TODO extract remaining headers into a header map and pass in to callRealMethod
         String reqdata = null;
+        // FIXME mthpath may include query params and so the following matching will fail in that case
+        List<RestHandlerDetail> handlerdetails = rrd.findMatchingHandlers(mthpath, mthd);
+        if (handlerdetails == null || handlerdetails.isEmpty()) {
+            RestUtil.formErrorResponse(exchange, RestResponseCode.NOT_ACCEPTABLE, 
+                    "Unsupported path and method combination", getLogger());
+            return;
+        }
         // At this time we do not support resolution via ContentType and AcceptType
         // so just take the first Handler
         RestHandlerDetail handlerdetail = handlerdetails.get(0);
@@ -133,12 +137,35 @@ public interface SkinnyResource {
                     return;
                 }
             }
+        } else if ("PUT".equalsIgnoreCase(mthd) || "POST".equalsIgnoreCase(mthd)) {
+            // accept only application/json
+            if (!contentType.startsWith("application/json")) {
+                RestUtil.formErrorResponse(exchange, RestResponseCode.UNSUPPORTED_MEDIA_TYPE, 
+                        "Methods of PUT or POST without FORM parameters must have Content-Type Header of type json", 
+                        getLogger());
+                return;
+            }
+            String aline = null;
+            StringBuilder sb = new StringBuilder();
+            try (InputStream is = exchange.getRequestBody()) {
+                while ((aline = RestUtil.readLine(is)) != null) {
+                    if (!aline.isBlank()) {
+                        sb.append(aline);
+                    }
+                }
+                reqdata = sb.toString();
+            } catch (IOException ioe1) {
+                RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
+                        "Error extracting parameters from multipart form body", getLogger());
+                return;
+            }
         }
-        // TODO else if it is a PUT or a POST with a different Content-Type handle the body accordingly
+        // TODO else handle the other verbs (GET, DELETE, HEAD should also require path parameters)
+        // TODO what about path parameters for PUT and POST? should they also not be passed in?
         String qrystr = null;
-        pthix = path.indexOf("?");
+        pthix = mthpath.indexOf("?");
         if (pthix > 0) {
-            qrystr = path.substring(pthix+1);
+            qrystr = mthpath.substring(pthix+1);
         }
         Map<String, String> qryparams = null;
         if (qrystr != null && !qrystr.isBlank()) {
@@ -150,9 +177,6 @@ public interface SkinnyResource {
                 return;
             }
         }
-        // TODO Extract Accept-Type and pass in
-        // TODO Extract OAuth2 header fields and pass in
-        // TODO extract remaining headers into a header map and pass in
         RestEntity result = null;
         try {
             result = callRealMethod(handlerdetail, mthd, mthpath, formParams, qryparams, reqdata, contentType);

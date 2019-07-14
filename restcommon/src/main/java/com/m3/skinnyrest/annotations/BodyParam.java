@@ -9,7 +9,6 @@ import java.lang.annotation.RetentionPolicy;
 @Target(value={ElementType.PARAMETER,ElementType.METHOD,ElementType.FIELD})
 @Retention(value=RetentionPolicy.RUNTIME)
 @Documented
-public @interface PathParam {
+public @interface BodyParam {
     String value();
-    String defaultValue() default "NONE";
 }

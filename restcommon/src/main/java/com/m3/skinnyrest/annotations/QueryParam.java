@@ -11,5 +11,5 @@ import java.lang.annotation.RetentionPolicy;
 @Documented
 public @interface QueryParam {
     String value();
-    String defaultValue();
+    String defaultValue() default "NONE";
 }

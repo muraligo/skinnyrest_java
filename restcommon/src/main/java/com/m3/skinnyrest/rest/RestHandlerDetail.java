@@ -72,6 +72,7 @@ public class RestHandlerDetail {
         QUERY, 
         HEADER, 
         FORM,
-        COOKIE
+        COOKIE, 
+        BODY
     }
 }
