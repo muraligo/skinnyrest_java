@@ -126,6 +126,119 @@ class SkinnyRestTest {
         // TODO Use argument captor and verify various things within
     }
 
+    @SuppressWarnings("rawtypes")
+	@Test
+    void updatePostWithFormUrlEncodeParametersSucceeds() {
+        HttpExchange exchange = Mockito.mock(HttpExchange.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        URI requestURI = mockRequestURI("/updatewithparams");
+        Headers headers = Mockito.mock(Headers.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        when(headers.isEmpty()).thenReturn(false);
+        when(headers.containsKey(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(true);
+        List<String> contentTypeLst = new ArrayList<String>();
+        contentTypeLst.add(RestUtil.CONTENT_TYPE_FORM_URL_ENCODED);
+        when(headers.get(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        when(exchange.getRequestURI()).thenReturn(requestURI);
+        when(exchange.getRequestHeaders()).thenReturn(headers);
+        when(exchange.getRequestMethod()).thenReturn("POST");
+        // build the body and return a Stream to it
+        StringBuilder bodysb = new StringBuilder();
+        bodysb.append(System.lineSeparator());
+        bodysb.append("number=2315&");
+        bodysb.append("street=Alhambra_Ln");
+        bodysb.append(System.lineSeparator());
+        InputStream is = new ByteArrayInputStream(bodysb.toString().getBytes(StandardCharsets.UTF_8));
+        when(exchange.getRequestBody()).thenReturn(is);
+        try {
+            doAnswer((Answer) invocation -> {
+                Integer respcode = (Integer)invocation.getArgument(0);
+                Integer expcode = Integer.valueOf(200);
+                Integer bodysize = (Integer)invocation.getArgument(1);
+                assertEquals(expcode, respcode);
+                assertTrue(bodysize > 0);
+                return null;
+            }).when(exchange).sendResponseHeaders(anyInt(), anyInt());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+        OutputStream os = Mockito.mock(OutputStream.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        try {
+            doNothing().when(os).write((byte[])notNull());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+        when(exchange.getResponseBody()).thenReturn(os);
+        service.handleResource(exchange);
+        // TODO Use argument captor and verify various things within
+    }
+
+//    @SuppressWarnings("rawtypes")
+//	@Test
+//    void updatePostWithJsonBodySucceeds() {
+//        HttpExchange exchange = Mockito.mock(HttpExchange.class, 
+//                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+//        URI requestURI = mockRequestURI("/updatewithparams");
+//        Headers headers = Mockito.mock(Headers.class, 
+//                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+//        when(headers.isEmpty()).thenReturn(false);
+//        when(headers.containsKey(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(true);
+//        List<String> contentTypeLst = new ArrayList<String>();
+//        contentTypeLst.add(RestUtil.CONTENT_TYPE_MULTIPART_FORM);
+//        contentTypeLst.add("boundary=abracadabrasometestboundary");
+//        when(headers.get(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+//        when(exchange.getRequestURI()).thenReturn(requestURI);
+//        when(exchange.getRequestHeaders()).thenReturn(headers);
+//        when(exchange.getRequestMethod()).thenReturn("POST");
+//        // build the body and return a Stream to it
+//        String boundary = "--abracadabrasometestboundary";
+//        StringBuilder bodysb = new StringBuilder();
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(boundary);
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(FORM_DATA_PARM_PREFIX);
+//        bodysb.append("number\"");
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append("2315");
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(boundary);
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(FORM_DATA_PARM_PREFIX);
+//        bodysb.append("street\"");
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append("Alhambra Ln");
+//        bodysb.append(System.lineSeparator());
+//        bodysb.append(boundary);
+//        bodysb.append(System.lineSeparator());
+//        InputStream is = new ByteArrayInputStream(bodysb.toString().getBytes(StandardCharsets.UTF_8));
+//        when(exchange.getRequestBody()).thenReturn(is);
+//        try {
+//            doAnswer((Answer) invocation -> {
+//                Integer respcode = (Integer)invocation.getArgument(0);
+//                Integer expcode = Integer.valueOf(200);
+//                Integer bodysize = (Integer)invocation.getArgument(1);
+//                assertEquals(expcode, respcode);
+//                assertTrue(bodysize > 0);
+//                return null;
+//            }).when(exchange).sendResponseHeaders(anyInt(), anyInt());
+//        } catch (IOException ioe) {
+//            // IGNORE
+//        }
+//        OutputStream os = Mockito.mock(OutputStream.class, 
+//                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+//        try {
+//            doNothing().when(os).write((byte[])notNull());
+//        } catch (IOException ioe) {
+//            // IGNORE
+//        }
+//        when(exchange.getResponseBody()).thenReturn(os);
+//        service.handleResource(exchange);
+//        // TODO Use argument captor and verify various things within
+//    }
+
     // Looks like URI is a final class and cannot be mocked
     // So need to create a real non-absolute, non-opaque URI with the corresponding path
     private URI mockRequestURI(String methodPath) {

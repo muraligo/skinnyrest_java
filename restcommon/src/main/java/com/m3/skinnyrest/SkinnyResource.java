@@ -108,8 +108,8 @@ public interface SkinnyResource {
                         getLogger());
                 return;
             }
-            formParams = new HashMap<String, String>();
             if (RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
+                formParams = new HashMap<String, String>();
                 boundary = boundary.substring(boundary.indexOf('=') + 1);
                 try (InputStream is = exchange.getRequestBody()) {
                 	reqdata = RestUtil.readAllFormDataParams(is, boundary, formParams);
@@ -119,7 +119,19 @@ public interface SkinnyResource {
                     return;
                 }
             } else if (RestUtil.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) {
-                // TODO Handle URL encoded form parameters
+                try (InputStream is = exchange.getRequestBody()) {
+                    while ((reqdata = RestUtil.readLine(is)) != null) {
+                        if (!reqdata.isBlank()) {
+                            break;
+                        }
+                    }
+                	formParams = RestUtil.parseUrlQuery(reqdata);
+                	// remaining body should not be of consequence
+                } catch (IOException ioe1) {
+                    RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
+                            "Error extracting parameters from multipart form body", getLogger());
+                    return;
+                }
             }
         }
         // TODO else if it is a PUT or a POST with a different Content-Type handle the body accordingly
