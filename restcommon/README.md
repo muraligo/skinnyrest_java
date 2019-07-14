@@ -29,7 +29,6 @@ The library is delivered as a fat jar thereby, like Spring Boot,
 makes it simple for the user to only import this single jar.
 
 TODO
-- Complete RestUtil
 - Complete SkinnyRestSampleService and StoreResource
 - Enhance SkinnyResource to handle remaining
 

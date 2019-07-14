@@ -38,6 +38,7 @@ import com.sun.net.httpserver.HttpPrincipal;
 import com.sun.net.httpserver.HttpServer;
 
 public class RestUtil {
+	public static final String CONTENT_TYPE_FORM_URL_ENCODED = "application/ x-www-form-urlencoded";
     public static final String CONTENT_TYPE_MULTIPART_FORM = "multipart/form-data";
     public static final String HEADER_CONTENT_TYPE = "Content-Type";
 

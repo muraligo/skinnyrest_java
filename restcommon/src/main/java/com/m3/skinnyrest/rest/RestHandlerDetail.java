@@ -21,7 +21,9 @@ public class RestHandlerDetail {
         _method = themethod;
         _path = thepath;
         _fullpath = (basepath == null) ? thepath : basepath + ((!basepath.strip().endsWith("/") ? "/" : "") + thepath);
-        _context = server.createContext(_fullpath);
+        if (server != null) {
+            _context = server.createContext(_fullpath);
+        }
     }
 
     public String name() { return _name; }

@@ -30,10 +30,10 @@ public interface SkinnyResource {
      */
     default void handleResource(HttpExchange exchange) {
         URI requestURI = exchange.getRequestURI();
-        String mthd = exchange.getRequestMethod();
         Headers hdrs = exchange.getRequestHeaders();
+        String mthd = exchange.getRequestMethod();
         String path = null;
-        if (!requestURI.isAbsolute() || !requestURI.isOpaque()) {
+        if (!requestURI.isAbsolute() && !requestURI.isOpaque()) {
             path = requestURI.getPath();
             path = (path != null && !path.isBlank()) ? path.toLowerCase() : "";
         }
@@ -92,28 +92,37 @@ public interface SkinnyResource {
         RestHandlerDetail handlerdetail = handlerdetails.get(0);
         Map<String, String> formParams = null;
         if (handlerdetail.hasParameterOfType(RestParamType.FORM)) {
-            if (contentTypeLst != null && !contentTypeLst.isEmpty()) {
+            if (contentTypeLst != null && !contentTypeLst.isEmpty() && contentType != null && 
+                    RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
                 boundary = contentTypeLst.stream()
-                        .filter(cts -> "boundary".equalsIgnoreCase(cts))
+                        .filter(cts -> cts.startsWith("boundary"))
                         .findAny().orElse(null);
             }
             if (contentTypeLst == null || contentTypeLst.isEmpty() || contentType == null || 
-                    !RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) || 
-                    boundary == null || boundary.isBlank()) {
+                    (!RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) && 
+                     !RestUtil.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) || 
+                    (RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) && 
+                    (boundary == null || boundary.isBlank() || boundary.indexOf('=') <= 0))) {
                 RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
-                        "Methods with FORM parameters must have Content-Type Header of type multipart form body", 
+                        "Methods with FORM parameters must have Content-Type Header of type multipart form body or URL encoded", 
                         getLogger());
                 return;
             }
             formParams = new HashMap<String, String>();
-            try (InputStream is = exchange.getRequestBody()) {
-            	reqdata = RestUtil.readAllFormDataParams(is, boundary, formParams);
-            } catch (IOException ioe1) {
-                RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
-                        "Error extracting parameters from multipart form body", getLogger());
-                return;
+            if (RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
+                boundary = boundary.substring(boundary.indexOf('=') + 1);
+                try (InputStream is = exchange.getRequestBody()) {
+                	reqdata = RestUtil.readAllFormDataParams(is, boundary, formParams);
+                } catch (IOException ioe1) {
+                    RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
+                            "Error extracting parameters from multipart form body", getLogger());
+                    return;
+                }
+            } else if (RestUtil.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) {
+                // TODO Handle URL encoded form parameters
             }
         }
+        // TODO else if it is a PUT or a POST with a different Content-Type handle the body accordingly
         String qrystr = null;
         pthix = path.indexOf("?");
         if (pthix > 0) {
