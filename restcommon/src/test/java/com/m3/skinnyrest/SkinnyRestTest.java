@@ -121,20 +121,16 @@ class SkinnyRestTest {
         } catch (IOException ioe) {
             // IGNORE
         }
+        when(exchange.getResponseBody()).thenReturn(os);
         service.handleResource(exchange);
         // TODO Use argument captor and verify various things within
     }
 
-    // TODO Make a real class
     // Looks like URI is a final class and cannot be mocked
     // So need to create a real non-absolute, non-opaque URI with the corresponding path
     private URI mockRequestURI(String methodPath) {
         String fullpath = "/skinnytest" + methodPath;
-        URI requestURI = Mockito.mock(URI.class, 
-                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
-        when(requestURI.isAbsolute()).thenReturn(false);
-        when(requestURI.isOpaque()).thenReturn(false);
-        when(requestURI.getPath()).thenReturn(fullpath);
+        URI requestURI = URI.create(fullpath);
         return requestURI;
     }
 
