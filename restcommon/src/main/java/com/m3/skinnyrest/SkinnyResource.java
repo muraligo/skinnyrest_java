@@ -62,7 +62,7 @@ public interface SkinnyResource {
             return;
         }
         pthix += basep.length();
-        String mthpath = path.substring(pthix);
+        String mthwqrypath = path.substring(pthix);
         RestResourceDetail rrd = getResourceDetail();
         List<String> contentTypeLst = null;
         String contentType = null;
@@ -84,7 +84,8 @@ public interface SkinnyResource {
         // TODO Extract OAuth2 header fields and pass in to callRealMethod
         // TODO extract remaining headers into a header map and pass in to callRealMethod
         String reqdata = null;
-        // FIXME mthpath may include query params and so the following matching will fail in that case
+        pthix = mthwqrypath.indexOf('?');
+        String mthpath = (pthix > 0) ? mthwqrypath.substring(0, pthix) : mthwqrypath;
         List<RestHandlerDetail> handlerdetails = rrd.findMatchingHandlers(mthpath, mthd);
         if (handlerdetails == null || handlerdetails.isEmpty()) {
             RestUtil.formErrorResponse(exchange, RestResponseCode.NOT_ACCEPTABLE, 
@@ -163,9 +164,9 @@ public interface SkinnyResource {
         // TODO else handle the other verbs (GET, DELETE, HEAD should also require path parameters)
         // TODO what about path parameters for PUT and POST? should they also not be passed in?
         String qrystr = null;
-        pthix = mthpath.indexOf("?");
+        pthix = mthwqrypath.indexOf("?");
         if (pthix > 0) {
-            qrystr = mthpath.substring(pthix+1);
+            qrystr = mthwqrypath.substring(pthix+1);
         }
         Map<String, String> qryparams = null;
         if (qrystr != null && !qrystr.isBlank()) {

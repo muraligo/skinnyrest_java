@@ -28,17 +28,36 @@ public class StoreResource implements SkinnyResource {
 
     @POST
     @Path("/add")
-    void addInventory(@HeaderParam(value="request-id", defaultValue="NONE") String requestId, 
-            @FormParam(value="name", defaultValue="NONE") String name, 
-            @FormParam(value="quantity", defaultValue="NONE") Integer quantity) {
+    void addInventory(@HeaderParam(value="request-id") String requestId, 
+            @FormParam(value="name") String name, @FormParam(value="quantity") Integer quantity) {
     	// TODO implement
+        // TODO for now ignore request-id
     }
 
     @Override
     public RestEntity callRealMethod(RestHandlerDetail handlerdetail, String mthd, String mthpath,
                     Map<String, String> formParams, Map<String, String> qryparams, String reqdata, String contentType) {
-        // TODO Auto-generated method stub
-        return null;
+        RestEntity result = null;
+        // as we call the real methods, we let the exceptions flow through
+        // let calls to void methods return a null entity and let the caller default handling decide
+        if ("addInventory".equals(handlerdetail.name())) {
+            // TODO we need header param completed before we can pass this in. for now pass null
+            String name = formParams.get("name");;
+            Integer quantity = null;
+            if (formParams.containsKey("quantity")) {
+                String qtystr = formParams.get("quantity");
+                if (qtystr != null && !qtystr.isBlank()) {
+                    try {
+                        quantity = Integer.valueOf(qtystr);
+                    } catch (NumberFormatException nfe) {
+                        getLogger().error("Numerical form parameter did not parse to a number", nfe);
+                        quantity = null;
+                    }
+                }
+            }
+            addInventory(null, name, quantity);
+        }
+        return result;
     }
 
     @Override

@@ -55,7 +55,7 @@ class SkinnyRestTest {
         handlerdetail1.addParameter(RestParamType.FORM, "street", null);
         RestHandlerDetail handlerdetail2 = resourcedetail.addHandler(null, "updateFromJson", "POST", "/updatewithjson");
         handlerdetail2.addParameter(RestParamType.BODY, "data", null);
-        RestHandlerDetail handlerdetail3 = resourcedetail.addHandler(null, "createFromJson", "POST", "/createwithjson");
+        RestHandlerDetail handlerdetail3 = resourcedetail.addHandler(null, "createFromJson", "PUT", "/createwithjson");
         handlerdetail3.addParameter(RestParamType.BODY, "data", null);
         RestHandlerDetail handlerdetail4 = resourcedetail.addHandler(null, "getFromPathAndQuery", "GET", "/getwithparams");
         handlerdetail4.addParameter(RestParamType.PATH, "name", null);
@@ -331,9 +331,11 @@ class SkinnyRestTest {
                                 Map<String, String> formParams, Map<String, String> qryparams, String reqdata, String contentType) {
             RestEntity result = null;
             if ("updateFromForm".equals(handlerdetail.name())) {
-            	result = new StringResultEntity(updateFromForm(formParams.get("number"), formParams.get("street")));
+                result = new StringResultEntity(updateFromForm(formParams.get("number"), formParams.get("street")));
             } else if ("updateFromJson".equals(handlerdetail.name())) {
-            	result = new StringResultEntity(updateFromJson(reqdata));
+                result = new StringResultEntity(updateFromJson(reqdata));
+            } else if ("createFromJson".equals(handlerdetail.name())) {
+                result = new StringResultEntity(createFromJson(reqdata));
             }
             return result;
         }
