@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.m3.skinnyrest.MonitoringMechanism;
 import com.m3.skinnyrest.rest.RestResourceDetail;
 import com.m3.skinnyrest.rest.RestUtil;
 import com.m3.skinnyrest.util.Helper;
@@ -28,6 +29,8 @@ public class SkinnyRestSampleService {
     private int _adminMaxThreads; // Should be > 1.5 times the number of cores
     private int _shutdownGracePeriod;
     private String _rootPath;
+    private MonitoringMechanism _monitorMechanism;
+    private int _promPort;
 //    private List<ConnectorConfig> _applicationConnectors = new ArrayList<ConnectorConfig>();
 //    private List<ConnectorConfig> _adminConnectors = new ArrayList<ConnectorConfig>();
 //    private LogConfig _requestLog;
@@ -110,10 +113,6 @@ public class SkinnyRestSampleService {
     private void readEnvironmentSpecificConfigs(Map<String, Object> configraw) {
         if (configraw.containsKey("server")) {
             Map<String, Object> serverdetails = (Map<String, Object>)configraw.get("server");
-//            _promport = (Integer)serverdetails.get("metricsport");
-//            if (_promport < 0) {
-//                _promport = 9550;
-//            }
 //            _initialdelay = (Integer)serverdetails.get("initialdelay");
 //            if (_initialdelay < 0) {
 //                _initialdelay = 10;
@@ -133,15 +132,15 @@ public class SkinnyRestSampleService {
             }
             _adminMinThreads = (Integer)serverdetails.get("adminMinThreads");
             if (_adminMinThreads < 0) {
-                _adminMinThreads = 10;
+                _adminMinThreads = 1;
             }
             _adminMaxThreads = (Integer)serverdetails.get("adminMaxThreads");
             if (_adminMaxThreads < 0) {
-                _adminMaxThreads = 12;
+                _adminMaxThreads = 4;
             }
             _shutdownGracePeriod = (Integer)serverdetails.get("shutdownGracePeriod");
             if (_shutdownGracePeriod < 0) {
-                _shutdownGracePeriod = 30;
+                _shutdownGracePeriod = 30000;
             }
             // TODO Hardcode ports for now
 //            List<Map<String, Object>> appconobj = (List<Map<String, Object>>)configraw.get("applicationConnectors");
@@ -163,6 +162,18 @@ public class SkinnyRestSampleService {
 //            if (serverdetails.containsKey("requestLog")) {
 //                _requestLog = readLogConfig((Map<String, Object>)configraw.get("requestLog"));
 //            }
+        } else if (configraw.containsKey("monitoring")) {
+            Map<String, Object> monitordetails = (Map<String, Object>)configraw.get("monitoring");
+            String mechstr = (String)monitordetails.get("mechanism");
+            _monitorMechanism = MonitoringMechanism.valueOf(mechstr);
+            if (_monitorMechanism == null || MonitoringMechanism.PROMETHEUS != _monitorMechanism) {
+                // TODO raise an error; ignore monitoring? or exit?
+            }
+            _promPort = (Integer)monitordetails.get("metricsport");
+            if (_promPort < 0) {
+                _promPort = 9550;
+            }
+            // for now assume endpoint is /metrics
         }
     }
 

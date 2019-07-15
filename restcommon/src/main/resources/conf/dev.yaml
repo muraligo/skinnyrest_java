@@ -1,0 +1,12 @@
+server:
+    minThreads: 1
+    maxThreads: 4
+    adminMinThreads: 1
+    adminMaxThreads: 2
+    shutdownGracePeriod: 30000
+    rootPath: "/sample"
+monitoring:
+    mechanism: "PROMETHEUS"
+    metricsport: 9550
+    
+    
