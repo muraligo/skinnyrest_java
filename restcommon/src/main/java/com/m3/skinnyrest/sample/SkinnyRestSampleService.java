@@ -3,6 +3,7 @@ package com.m3.skinnyrest.sample;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -10,7 +11,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.m3.skinnyrest.MonitoringMechanism;
+import com.m3.common.core.M3Framework;
+import com.m3.skinnyrest.SkinnyFrameworks;
 import com.m3.skinnyrest.rest.RestResourceDetail;
 import com.m3.skinnyrest.rest.RestUtil;
 import com.m3.skinnyrest.util.Helper;
@@ -20,6 +22,7 @@ public class SkinnyRestSampleService {
     private static final Logger _LOG = LoggerFactory.getLogger(SkinnyRestSampleService.class);
 
     private static final String DEFAULTENV = "dev";
+    private static final String SERVICENAME = "SkinnySample";
 
     private static String _envname = null;
 
@@ -29,8 +32,7 @@ public class SkinnyRestSampleService {
     private int _adminMaxThreads; // Should be > 1.5 times the number of cores
     private int _shutdownGracePeriod;
     private String _rootPath;
-    private MonitoringMechanism _monitorMechanism;
-    private int _promPort;
+    private M3Framework _monitorfw;
 //    private List<ConnectorConfig> _applicationConnectors = new ArrayList<ConnectorConfig>();
 //    private List<ConnectorConfig> _adminConnectors = new ArrayList<ConnectorConfig>();
 //    private LogConfig _requestLog;
@@ -46,22 +48,22 @@ public class SkinnyRestSampleService {
             } else if (args[ix].startsWith("--config")) {
                 argconfigpthstr = fetchArgumentValue("--config", args[ix]);
             } else {
-                _LOG.error("RBWS: ERROR invalid argument [" + args[ix] + " at " + ix + "].");
+                _LOG.error(SERVICENAME + ": ERROR invalid argument [" + args[ix] + " at " + ix + "].");
             }
         }
         // TODO Ensure arguments exist and are valid paths
         if (argconfigpthstr == null || argconfigpthstr.isEmpty()) {
-            _LOG.error("RBWS: Empty or invalid configuration path parameter");
+            _LOG.error(SERVICENAME + ": Empty or invalid configuration path parameter");
             System.exit(-1);
         }
         _envname = (argenvvalue != null) ? argenvvalue.trim().toLowerCase() : DEFAULTENV;
 
-        _LOG.info("Configuring SkinnyRestSampleService for environment [" + _envname + "] from source [" + argconfigpthstr + "]");
+        _LOG.info("Configuring " + SERVICENAME + " for environment [" + _envname + "] from source [" + argconfigpthstr + "]");
 
         SkinnyRestSampleService svc = new SkinnyRestSampleService();
         svc.readConfigs(argconfigpthstr);
 
-        _LOG.info("Starting RBWS ...");
+        _LOG.info("Starting " + SERVICENAME + " ...");
 
         HttpServer server = null;
         try {
@@ -84,13 +86,13 @@ public class SkinnyRestSampleService {
 
         Runtime.getRuntime().addShutdownHook(new Thread() { 
             public void run() { 
-                _LOG.info("RBWS: Shutdown Hook is running !");
+                _LOG.info(SERVICENAME + ": Shutdown Hook is running !");
                 // TODO Handle grace period
                 srvlst.get(0).stop(0);
             }
         });
 
-        _LOG.info("... RBWS started.");
+        _LOG.info("... " + SERVICENAME + " started.");
         server.start();
     }
 
@@ -103,7 +105,7 @@ public class SkinnyRestSampleService {
         // no separate env specific and app specific config files; use configPath as full path
         Map<String, Object> configraw = Helper.parseAndLoadYamlAbs(_LOG, configPath);
         if (configraw == null || configraw.isEmpty()) {
-            System.err.println("Rbws: ERROR in parsing or EMPTY configuration");
+            System.err.println(SERVICENAME + ": ERROR in parsing or EMPTY configuration");
             System.exit(1);
         }
         readEnvironmentSpecificConfigs(configraw);
@@ -165,15 +167,17 @@ public class SkinnyRestSampleService {
         } else if (configraw.containsKey("monitoring")) {
             Map<String, Object> monitordetails = (Map<String, Object>)configraw.get("monitoring");
             String mechstr = (String)monitordetails.get("mechanism");
-            _monitorMechanism = MonitoringMechanism.valueOf(mechstr);
-            if (_monitorMechanism == null || MonitoringMechanism.PROMETHEUS != _monitorMechanism) {
+            if (mechstr == null || mechstr.isBlank() || !"MONITOR_PROMETHEUS".equalsIgnoreCase(mechstr.strip())) {
                 // TODO raise an error; ignore monitoring? or exit?
             }
-            _promPort = (Integer)monitordetails.get("metricsport");
-            if (_promPort < 0) {
-                _promPort = 9550;
+            int promport = (Integer)monitordetails.get("metricsport");
+            if (promport < 0) {
+            	promport = 9550;
             }
             // for now assume endpoint is /metrics
+            Map<String, Object> props = new HashMap<String, Object>();
+            props.put("metricsport", promport);
+            _monitorfw = SkinnyFrameworks.addFramework("MONITOR_PROMETHEUS", props, _LOG);
         }
     }
 
