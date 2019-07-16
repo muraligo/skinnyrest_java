@@ -3,7 +3,6 @@ package com.m3.skinnyrest.sample;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -67,13 +66,13 @@ public class SkinnyRestSampleService {
 
         HttpServer server = null;
         try {
-            InetSocketAddress isa = new InetSocketAddress("localhost", 8085); // TODO later svc._applicationConnectors.get(0).getPort());
+            InetSocketAddress isa = new InetSocketAddress("localhost", 8085); // TODO ENHANCE later svc._applicationConnectors.get(0).getPort());
 //            InetSocketAddress isa = new InetSocketAddress(rbws._applicationConnectors.get(0).getPort());
             _LOG.debug("Address is [" + isa.getAddress().getHostAddress() + "]/[" + isa.getPort() + "]");
             server = HttpServer.create(isa, 0); // 2nd arg is backlog
         } catch (IOException ioe1) {
             _LOG.error("Error creating HTTP server listening on port [" + 
-//                            svc._applicationConnectors.get(0).getPort() // TODO later
+//                            svc._applicationConnectors.get(0).getPort() // TODO ENHANCE later
                             "8085"
                             + "]. Exiting", ioe1);
             System.exit(1);
@@ -144,7 +143,7 @@ public class SkinnyRestSampleService {
             if (_shutdownGracePeriod < 0) {
                 _shutdownGracePeriod = 30000;
             }
-            // TODO Hardcode ports for now
+            // TODO ENHANCE Hardcode ports for now
 //            List<Map<String, Object>> appconobj = (List<Map<String, Object>>)configraw.get("applicationConnectors");
 //            for (Map<String, Object> conobj : appconobj) {
 //                ConnectorConfig cc = new ConnectorConfig();
@@ -160,24 +159,13 @@ public class SkinnyRestSampleService {
 //                _adminConnectors.add(cc);
 //            }
             _rootPath = (String)serverdetails.get("rootPath");
-            // TODO Handle flexible logging later
+            // TODO ENHANCE Handle flexible logging later
 //            if (serverdetails.containsKey("requestLog")) {
 //                _requestLog = readLogConfig((Map<String, Object>)configraw.get("requestLog"));
 //            }
         } else if (configraw.containsKey("monitoring")) {
             Map<String, Object> monitordetails = (Map<String, Object>)configraw.get("monitoring");
-            String mechstr = (String)monitordetails.get("mechanism");
-            if (mechstr == null || mechstr.isBlank() || !"MONITOR_PROMETHEUS".equalsIgnoreCase(mechstr.strip())) {
-                // TODO raise an error; ignore monitoring? or exit?
-            }
-            int promport = (Integer)monitordetails.get("metricsport");
-            if (promport < 0) {
-            	promport = 9550;
-            }
-            // for now assume endpoint is /metrics
-            Map<String, Object> props = new HashMap<String, Object>();
-            props.put("metricsport", promport);
-            _monitorfw = SkinnyFrameworks.addFramework("MONITOR_PROMETHEUS", props, _LOG);
+            _monitorfw = SkinnyFrameworks.addFrameworkFromConfig("MONITOR", monitordetails, _LOG);
         }
     }
 
