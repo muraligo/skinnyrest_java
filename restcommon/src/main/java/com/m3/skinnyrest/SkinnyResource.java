@@ -20,15 +20,16 @@ import com.m3.skinnyrest.rest.RestResponseCode;
 import com.m3.skinnyrest.rest.RestUtil;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 
-public interface SkinnyResource {
+public interface SkinnyResource extends HttpHandler {
     /**
      * Extracts parameters from a REST body.
      * Extracts query parameters
      * Renders a REST response body
      * 
      */
-    default void handleResource(HttpExchange exchange) {
+    default void handle(HttpExchange exchange) {
         URI requestURI = exchange.getRequestURI();
         Headers hdrs = exchange.getRequestHeaders();
         String mthd = exchange.getRequestMethod();

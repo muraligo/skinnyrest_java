@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.m3.skinnyrest.SkinnyResource;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpServer;
 
@@ -16,13 +17,14 @@ public class RestHandlerDetail {
     private final ConcurrentMap<String, RestParameter> _parameters = new ConcurrentHashMap<String, RestParameter>();
     private HttpContext _context;
 
-    public RestHandlerDetail(HttpServer server, String thename, String themethod, String thepath, String basepath) {
+    public RestHandlerDetail(HttpServer server, String thename, String themethod, String thepath, String basepath, 
+                SkinnyResource theresource) {
         _name = thename;
         _method = themethod;
         _path = thepath;
         _fullpath = (basepath == null) ? thepath : basepath + ((!basepath.strip().endsWith("/") ? "/" : "") + thepath);
         if (server != null) {
-            _context = server.createContext(_fullpath);
+            _context = server.createContext(_fullpath, theresource);
         }
     }
 

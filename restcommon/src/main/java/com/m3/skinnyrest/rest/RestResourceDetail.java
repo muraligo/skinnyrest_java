@@ -21,8 +21,8 @@ public class RestResourceDetail {
     public String getName() { return _name; }
     public String getBasePath() { return _basepath; }
     public List<RestHandlerDetail> getHandlers() { return _handlers; }
-    public RestHandlerDetail addHandler(HttpServer server, String thename, String themethod, String thepath) {
-        RestHandlerDetail handler = new RestHandlerDetail(server, thename, themethod, thepath, _basepath);
+    public RestHandlerDetail addHandler(HttpServer server, String thename, String themethod, String thepath, SkinnyResource theresource) {
+        RestHandlerDetail handler = new RestHandlerDetail(server, thename, themethod, thepath, _basepath, theresource);
         _handlers.add(handler);
         return handler;
     }

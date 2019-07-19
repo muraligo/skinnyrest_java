@@ -157,6 +157,22 @@ public class RestUtil {
             }
         }
         RestResourceDetail retval = new RestResourceDetail(name, basep);
+        Object obj = null;
+        try {
+            obj = clz.getDeclaredConstructor(RestResourceDetail.class).newInstance(retval);
+        } catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException ex) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] instantiation failed", ex);
+        } catch (NoSuchMethodException nsme) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] does not have a constructor with RestResourceDetail as argument", nsme);
+        }
+        if (obj == null) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] instantiation failed");
+        }
+        if (!(obj instanceof SkinnyResource)) {
+            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] does not seem to be a valid Resource");
+        }
+        SkinnyResource rsc = (SkinnyResource)obj;
+        retval.setResource(rsc);
         Method[] methods = clz.getMethods();
         for (Method mthd : methods) {
         	int mods = mthd.getModifiers();
@@ -184,7 +200,7 @@ public class RestUtil {
                     mpath = annpth.value();
                 }
             }
-            RestHandlerDetail handler = retval.addHandler(server, mthd.getName(), op, mpath);
+            RestHandlerDetail handler = retval.addHandler(server, mthd.getName(), op, mpath, rsc);
             Annotation[][] prmannss = mthd.getParameterAnnotations();
             if (prmannss.length > 0) {
                 for (int ix = 0; ix < prmannss.length; ix++) {
@@ -227,25 +243,6 @@ public class RestUtil {
                     }
                 }
             }
-        }
-        Object obj = null;
-        try {
-            obj = clz.getDeclaredConstructor(RestResourceDetail.class).newInstance(retval);
-        } catch (InstantiationException|IllegalAccessException|IllegalArgumentException|InvocationTargetException ex) {
-            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] instantiation failed", ex);
-        } catch (NoSuchMethodException nsme) {
-            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] does not have a constructor with RestResourceDetail as argument", nsme);
-        }
-        if (obj == null) {
-            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] instantiation failed");
-        }
-        if (!(obj instanceof SkinnyResource)) {
-            throw new RuntimeException("Resource [" + clz.getSimpleName() + "] does not seem to be a valid Resource");
-        }
-        SkinnyResource rsc = (SkinnyResource)obj;
-        retval.setResource(rsc);
-        for (RestHandlerDetail h : retval.getHandlers()) {
-            h.context().setHandler(rsc::handleResource);
         }
         return retval;
     }

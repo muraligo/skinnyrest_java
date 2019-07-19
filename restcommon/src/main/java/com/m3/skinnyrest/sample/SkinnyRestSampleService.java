@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,12 +83,12 @@ public class SkinnyRestSampleService {
 //        HttpContext doesitworkContext = server.createContext("/check");
 //        doesitworkContext.setHandler(SkinnyRestSampleService::handleDoesItWork);
         svc.registerResources(server);
+        server.setExecutor(Executors.newCachedThreadPool());
 
         Runtime.getRuntime().addShutdownHook(new Thread() { 
             public void run() { 
                 _LOG.info(SERVICENAME + ": Shutdown Hook is running !");
-                // TODO Handle grace period
-                srvlst.get(0).stop(0);
+                srvlst.get(0).stop(svc._shutdownGracePeriod);
             }
         });
 
@@ -159,6 +160,8 @@ public class SkinnyRestSampleService {
 //                _adminConnectors.add(cc);
 //            }
             _rootPath = (String)serverdetails.get("rootPath");
+            if (_rootPath == null || _rootPath.isBlank())
+                _rootPath = "/";
             // TODO ENHANCE Handle flexible logging later
 //            if (serverdetails.containsKey("requestLog")) {
 //                _requestLog = readLogConfig((Map<String, Object>)configraw.get("requestLog"));

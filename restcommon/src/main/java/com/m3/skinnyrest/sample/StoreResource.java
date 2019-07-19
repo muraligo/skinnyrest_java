@@ -26,6 +26,7 @@ public class StoreResource implements SkinnyResource {
         _resourcedetail = resdetail;
     }
 
+    // In order to work properly these methods should be stateless
     @POST
     @Path("/add")
     void addInventory(@HeaderParam(value="request-id") String requestId, 
