@@ -50,21 +50,21 @@ class SkinnyRestTest {
     @BeforeAll
     static void setupBeforeClass() throws Exception {
         resourcedetail = new RestResourceDetail("testskinny", "/skinnytest");
-        RestHandlerDetail handlerdetail1 = resourcedetail.addHandler(null, "updateFromForm", "POST", "/updatewithparams");
-        handlerdetail1.addParameter(RestParamType.FORM, "number", null);
-        handlerdetail1.addParameter(RestParamType.FORM, "street", null);
-        RestHandlerDetail handlerdetail2 = resourcedetail.addHandler(null, "updateFromJson", "POST", "/updatewithjson");
-        handlerdetail2.addParameter(RestParamType.BODY, "data", null);
-        RestHandlerDetail handlerdetail3 = resourcedetail.addHandler(null, "createFromJson", "PUT", "/createwithjson");
-        handlerdetail3.addParameter(RestParamType.BODY, "data", null);
-        RestHandlerDetail handlerdetail4 = resourcedetail.addHandler(null, "getFromPathAndQuery", "GET", "/getwithparams");
-        handlerdetail4.addParameter(RestParamType.PATH, "name", null);
-        handlerdetail4.addParameter(RestParamType.QUERY, "type", null);
     }
 
     @BeforeEach
     void setUp() throws Exception {
         service = new TestSkinnyResource(resourcedetail);
+        RestHandlerDetail handlerdetail1 = resourcedetail.addHandler(null, "updateFromForm", "POST", "/updatewithparams", service);
+        handlerdetail1.addParameter(RestParamType.FORM, "number", null);
+        handlerdetail1.addParameter(RestParamType.FORM, "street", null);
+        RestHandlerDetail handlerdetail2 = resourcedetail.addHandler(null, "updateFromJson", "POST", "/updatewithjson", service);
+        handlerdetail2.addParameter(RestParamType.BODY, "data", null);
+        RestHandlerDetail handlerdetail3 = resourcedetail.addHandler(null, "createFromJson", "PUT", "/createwithjson", service);
+        handlerdetail3.addParameter(RestParamType.BODY, "data", null);
+        RestHandlerDetail handlerdetail4 = resourcedetail.addHandler(null, "getFromPathAndQuery", "GET", "/getwithparams", service);
+        handlerdetail4.addParameter(RestParamType.PATH, "name", null);
+        handlerdetail4.addParameter(RestParamType.QUERY, "type", null);
     }
 
     @AfterEach
@@ -132,7 +132,7 @@ class SkinnyRestTest {
             // IGNORE
         }
         when(exchange.getResponseBody()).thenReturn(os);
-        service.handleResource(exchange);
+        service.handle(exchange);
         // TODO Use argument captor and verify various things within
     }
 
@@ -180,7 +180,7 @@ class SkinnyRestTest {
             // IGNORE
         }
         when(exchange.getResponseBody()).thenReturn(os);
-        service.handleResource(exchange);
+        service.handle(exchange);
         // TODO Use argument captor and verify various things within
     }
 
@@ -233,7 +233,7 @@ class SkinnyRestTest {
             // IGNORE
         }
         when(exchange.getResponseBody()).thenReturn(os);
-        service.handleResource(exchange);
+        service.handle(exchange);
         // TODO Use argument captor and verify various things within
     }
 
@@ -304,7 +304,7 @@ class SkinnyRestTest {
             // IGNORE
         }
         when(exchange.getResponseBody()).thenReturn(os);
-        service.handleResource(exchange);
+        service.handle(exchange);
         // TODO Use argument captor and verify various things within
     }
 
