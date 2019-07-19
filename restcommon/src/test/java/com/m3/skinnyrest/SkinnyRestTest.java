@@ -29,13 +29,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import com.m3.common.core.HttpHelper;
 import com.m3.skinnyrest.annotations.Path;
 import com.m3.skinnyrest.rest.RestHandlerDetail;
 import com.m3.skinnyrest.rest.RestHandlerDetail.RestParamType;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.m3.skinnyrest.rest.RestResourceDetail;
-import com.m3.skinnyrest.rest.RestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @RunWith(JUnitPlatform.class)
@@ -80,11 +80,11 @@ class SkinnyRestTest {
         Headers headers = Mockito.mock(Headers.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         when(headers.isEmpty()).thenReturn(false);
-        when(headers.containsKey(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(true);
+        when(headers.containsKey(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(true);
         List<String> contentTypeLst = new ArrayList<String>();
-        contentTypeLst.add(RestUtil.CONTENT_TYPE_MULTIPART_FORM);
+        contentTypeLst.add(HttpHelper.CONTENT_TYPE_MULTIPART_FORM);
         contentTypeLst.add("boundary=abracadabrasometestboundary");
-        when(headers.get(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        when(headers.get(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
         when(exchange.getRequestURI()).thenReturn(requestURI);
         when(exchange.getRequestHeaders()).thenReturn(headers);
         when(exchange.getRequestMethod()).thenReturn("POST");
@@ -145,10 +145,10 @@ class SkinnyRestTest {
         Headers headers = Mockito.mock(Headers.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         when(headers.isEmpty()).thenReturn(false);
-        when(headers.containsKey(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(true);
+        when(headers.containsKey(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(true);
         List<String> contentTypeLst = new ArrayList<String>();
-        contentTypeLst.add(RestUtil.CONTENT_TYPE_FORM_URL_ENCODED);
-        when(headers.get(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        contentTypeLst.add(HttpHelper.CONTENT_TYPE_FORM_URL_ENCODED);
+        when(headers.get(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
         when(exchange.getRequestURI()).thenReturn(requestURI);
         when(exchange.getRequestHeaders()).thenReturn(headers);
         when(exchange.getRequestMethod()).thenReturn("POST");
@@ -193,10 +193,10 @@ class SkinnyRestTest {
         Headers headers = Mockito.mock(Headers.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         when(headers.isEmpty()).thenReturn(false);
-        when(headers.containsKey(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(true);
+        when(headers.containsKey(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(true);
         List<String> contentTypeLst = new ArrayList<String>();
         contentTypeLst.add("application/json");
-        when(headers.get(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        when(headers.get(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
         when(exchange.getRequestURI()).thenReturn(requestURI);
         when(exchange.getRequestHeaders()).thenReturn(headers);
         when(exchange.getRequestMethod()).thenReturn("POST");
@@ -246,10 +246,10 @@ class SkinnyRestTest {
         Headers headers = Mockito.mock(Headers.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         when(headers.isEmpty()).thenReturn(false);
-        when(headers.containsKey(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(true);
+        when(headers.containsKey(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(true);
         List<String> contentTypeLst = new ArrayList<String>();
         contentTypeLst.add("application/json");
-        when(headers.get(RestUtil.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        when(headers.get(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
         when(exchange.getRequestURI()).thenReturn(requestURI);
         when(exchange.getRequestHeaders()).thenReturn(headers);
         when(exchange.getRequestMethod()).thenReturn("PUT");

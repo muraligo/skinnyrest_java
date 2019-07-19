@@ -1,17 +1,12 @@
 package com.m3.skinnyrest.rest;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URI;
-import java.net.URLDecoder;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,96 +33,6 @@ import com.sun.net.httpserver.HttpPrincipal;
 import com.sun.net.httpserver.HttpServer;
 
 public class RestUtil {
-	public static final String CONTENT_TYPE_FORM_URL_ENCODED = "application/ x-www-form-urlencoded";
-    public static final String CONTENT_TYPE_MULTIPART_FORM = "multipart/form-data";
-    public static final String HEADER_CONTENT_TYPE = "Content-Type";
-
-    public static Map<String, String> parseUrlQuery(String query) throws UnsupportedEncodingException {
-        Map<String, String> params = new HashMap<String, String>();
-        if (query != null) {
-            String[] pairs = query.split("&");
-            for (String pair : pairs) {
-                int idx = pair.indexOf("=");
-                if (idx != -1)
-                    params.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"), 
-                                URLDecoder.decode(pair.substring(idx+1), "UTF-8"));
-            }
-        }
-        return params;
-    }
-
-    // This is a bit shaky. It doesn't handle continuation
-    // lines, but our client shouldn't send any.
-    // Read a line from the input stream, swallowing the final
-    // \r\n sequence. Stops at the first \n, doesn't complain
-    // if it wasn't preceded by '\r'.
-    //
-    public static String readLine(InputStream r) throws IOException {
-        StringBuilder b = new StringBuilder();
-        int c;
-        while ((c = r.read()) != -1) {
-            if (c == '\n') break;
-            b.appendCodePoint(c);
-        }
-        if (c == -1 && b.length() == 0) {
-            return null;
-        }
-        if (b.codePointAt(b.length() -1) == '\r') {
-            b.delete(b.length() -1, b.length());
-        }
-        return b.toString();
-    }
-
-    public static String readAllFormDataParams(InputStream is, String boundary, Map<String, String> formParams)
-            throws IOException {
-        String reqdata;
-        // skip till start boundary (or end)
-        String bndrymarker = MULTIPART_BOUNDARY_PREFIX + boundary;
-        while ((reqdata = readLine(is)) != null) {
-            if (!reqdata.isBlank() && reqdata.strip().startsWith(bndrymarker)) {
-                break;
-            }
-        }
-        while ((reqdata = readAFormDataParam(is, bndrymarker, formParams)) != null) {
-            if (reqdata.startsWith("ENDMULTIPART")) {
-                reqdata = reqdata.substring("ENDMULTIPART ".length());
-                break;
-            }
-        }
-        return reqdata;
-    }
-
-    // read a single Form-Data parameter name and value contained within a single part of a multipart body with a boundary
-    private static String readAFormDataParam(InputStream is, String boundaryMarker, Map<String, String> formParams) 
-            throws IOException {
-        String reqdata;
-        reqdata = RestUtil.readLine(is);
-        if (reqdata == null || reqdata.isBlank()) {
-            return null;
-        }
-        reqdata = reqdata.strip();
-        if (!reqdata.startsWith(FORM_DATA_PARM_START)) {
-            // end of multipart segments
-        	return "ENDMULTIPART " + reqdata;
-        }
-        String fieldname = reqdata.substring(FORM_DATA_PARM_PREFIX.length(), reqdata.lastIndexOf('\"'));
-        if (fieldname != null) {
-            StringBuilder sbfld = new StringBuilder();
-            while ((reqdata = RestUtil.readLine(is)) != null) {
-                if (!reqdata.isBlank() && reqdata.strip().startsWith(boundaryMarker)) {
-                    break;
-                }
-                if (!reqdata.isBlank()) {
-                    sbfld.append(reqdata.strip());
-                }
-            }
-            if (sbfld.length() > 0) {
-                formParams.put(fieldname, sbfld.toString());
-            }
-        }
-        return reqdata;
-    }
-
     @SafeVarargs
     public static ConcurrentMap<String, RestResourceDetail> registerRestResources(HttpServer server, Class<?>...clazzes) {
         ConcurrentMap<String, RestResourceDetail> restdetails = null;
@@ -289,8 +194,4 @@ public class RestUtil {
         String query = requestURI.getQuery();
         log.debug("\t" + query);
     }
-
-    private static final String MULTIPART_BOUNDARY_PREFIX = "--";
-    private static final String FORM_DATA_PARM_START = "Content-Disposition";
-    private static final String FORM_DATA_PARM_PREFIX = FORM_DATA_PARM_START + ": form-data; name=\"";
 }

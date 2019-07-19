@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 
+import com.m3.common.core.HttpHelper;
 import com.m3.skinnyrest.annotations.Path;
 import com.m3.skinnyrest.rest.RestHandlerDetail;
 import com.m3.skinnyrest.rest.RestHandlerDetail.RestParamType;
@@ -68,7 +69,7 @@ public interface SkinnyResource extends HttpHandler {
         List<String> contentTypeLst = null;
         String contentType = null;
         String boundary = null;
-        if (hdrs.isEmpty() || !hdrs.containsKey(RestUtil.HEADER_CONTENT_TYPE)) {
+        if (hdrs.isEmpty() || !hdrs.containsKey(HttpHelper.HEADER_CONTENT_TYPE)) {
             if (!"GET".equalsIgnoreCase(mthd) && !"DELETE".equalsIgnoreCase(mthd)) {
                 RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
                         "This kind of request must contain a Content-Type Header with at least a Content-Type", 
@@ -76,7 +77,7 @@ public interface SkinnyResource extends HttpHandler {
                 return;
             }
         } else {
-            contentTypeLst = hdrs.get(RestUtil.HEADER_CONTENT_TYPE);
+            contentTypeLst = hdrs.get(HttpHelper.HEADER_CONTENT_TYPE);
         }
         if (contentTypeLst != null && !contentTypeLst.isEmpty()) {
             contentType = contentTypeLst.get(0); // first element must be the real content type
@@ -99,39 +100,39 @@ public interface SkinnyResource extends HttpHandler {
         Map<String, String> formParams = null;
         if (handlerdetail.hasParameterOfType(RestParamType.FORM)) {
             if (contentTypeLst != null && !contentTypeLst.isEmpty() && contentType != null && 
-                    RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
+            		HttpHelper.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
                 boundary = contentTypeLst.stream()
                         .filter(cts -> cts.startsWith("boundary"))
                         .findAny().orElse(null);
             }
             if (contentTypeLst == null || contentTypeLst.isEmpty() || contentType == null || 
-                    (!RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) && 
-                     !RestUtil.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) || 
-                    (RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) && 
+                    (!HttpHelper.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) && 
+                     !HttpHelper.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) || 
+                    (HttpHelper.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType) && 
                     (boundary == null || boundary.isBlank() || boundary.indexOf('=') <= 0))) {
                 RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
                         "Methods with FORM parameters must have Content-Type Header of type multipart form body or URL encoded", 
                         getLogger());
                 return;
             }
-            if (RestUtil.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
+            if (HttpHelper.CONTENT_TYPE_MULTIPART_FORM.equalsIgnoreCase(contentType)) {
                 formParams = new HashMap<String, String>();
                 boundary = boundary.substring(boundary.indexOf('=') + 1);
                 try (InputStream is = exchange.getRequestBody()) {
-                	reqdata = RestUtil.readAllFormDataParams(is, boundary, formParams);
+                	reqdata = HttpHelper.readAllFormDataParams(is, boundary, formParams);
                 } catch (IOException ioe1) {
                     RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
                             "Error extracting parameters from multipart form body", getLogger());
                     return;
                 }
-            } else if (RestUtil.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) {
+            } else if (HttpHelper.CONTENT_TYPE_FORM_URL_ENCODED.equalsIgnoreCase(contentType)) {
                 try (InputStream is = exchange.getRequestBody()) {
-                    while ((reqdata = RestUtil.readLine(is)) != null) {
+                    while ((reqdata = HttpHelper.readLine(is)) != null) {
                         if (!reqdata.isBlank()) {
                             break;
                         }
                     }
-                	formParams = RestUtil.parseUrlQuery(reqdata);
+                	formParams = HttpHelper.parseUrlQuery(reqdata);
                 	// remaining body should not be of consequence
                 } catch (IOException ioe1) {
                     RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
@@ -150,7 +151,7 @@ public interface SkinnyResource extends HttpHandler {
             String aline = null;
             StringBuilder sb = new StringBuilder();
             try (InputStream is = exchange.getRequestBody()) {
-                while ((aline = RestUtil.readLine(is)) != null) {
+                while ((aline = HttpHelper.readLine(is)) != null) {
                     if (!aline.isBlank()) {
                         sb.append(aline);
                     }
@@ -172,7 +173,7 @@ public interface SkinnyResource extends HttpHandler {
         Map<String, String> qryparams = null;
         if (qrystr != null && !qrystr.isBlank()) {
             try {
-                qryparams = RestUtil.parseUrlQuery(qrystr);
+                qryparams = HttpHelper.parseUrlQuery(qrystr);
             } catch (UnsupportedEncodingException e) {
                 RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
                         "Error extracting query parameters", getLogger());
