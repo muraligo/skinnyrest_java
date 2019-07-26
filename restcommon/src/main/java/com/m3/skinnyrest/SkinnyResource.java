@@ -35,9 +35,11 @@ public interface SkinnyResource extends HttpHandler {
         Headers hdrs = exchange.getRequestHeaders();
         String mthd = exchange.getRequestMethod();
         String path = null;
+        String qrystr = null;
         if (!requestURI.isAbsolute() && !requestURI.isOpaque()) {
             path = requestURI.getPath();
             path = (path != null && !path.isBlank()) ? path.toLowerCase() : "";
+            qrystr = requestURI.getQuery();
         }
         if (path == null || path.isBlank()) {
             RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
@@ -64,11 +66,17 @@ public interface SkinnyResource extends HttpHandler {
             return;
         }
         pthix += basep.length();
-        String mthwqrypath = path.substring(pthix);
+        String mthpath = path.substring(pthix);
         RestResourceDetail rrd = getResourceDetail();
         List<String> contentTypeLst = null;
         String contentType = null;
         String boundary = null;
+        if (getLogger().isDebugEnabled()) {
+            StringBuilder sb = new StringBuilder("Received method [" + mthd + "] with path [" + mthpath + "] headers [");
+            if (!hdrs.isEmpty()) hdrs.forEach((k, v) -> sb.append(k + "=" + v + ", "));
+            sb.append("]");
+            getLogger().debug(sb.toString());
+        }
         if (hdrs.isEmpty() || !hdrs.containsKey(HttpHelper.HEADER_CONTENT_TYPE)) {
             if (!"GET".equalsIgnoreCase(mthd) && !"DELETE".equalsIgnoreCase(mthd)) {
                 RestUtil.formErrorResponse(exchange, RestResponseCode.BAD_REQUEST, 
@@ -82,18 +90,18 @@ public interface SkinnyResource extends HttpHandler {
         if (contentTypeLst != null && !contentTypeLst.isEmpty()) {
             contentType = contentTypeLst.get(0); // first element must be the real content type
         }
+//        System.out.println("After content type if");
         // TODO Extract Accept-Type and pass in to callRealMethod
         // TODO Extract OAuth2 header fields and pass in to callRealMethod
         // TODO extract remaining headers into a header map and pass in to callRealMethod
         String reqdata = null;
-        pthix = mthwqrypath.indexOf('?');
-        String mthpath = (pthix > 0) ? mthwqrypath.substring(0, pthix) : mthwqrypath;
         List<RestHandlerDetail> handlerdetails = rrd.findMatchingHandlers(mthpath, mthd);
         if (handlerdetails == null || handlerdetails.isEmpty()) {
             RestUtil.formErrorResponse(exchange, RestResponseCode.NOT_ACCEPTABLE, 
                     "Unsupported path and method combination", getLogger());
             return;
         }
+//        System.out.println("After handler if");
         // At this time we do not support resolution via ContentType and AcceptType
         // so just take the first Handler
         RestHandlerDetail handlerdetail = handlerdetails.get(0);
@@ -141,6 +149,7 @@ public interface SkinnyResource extends HttpHandler {
                 }
             }
         } else if ("PUT".equalsIgnoreCase(mthd) || "POST".equalsIgnoreCase(mthd)) {
+            // TODO what about path parameters for PUT and POST? should they also not be passed in?
             // accept only application/json
             if (!contentType.startsWith("application/json")) {
                 RestUtil.formErrorResponse(exchange, RestResponseCode.UNSUPPORTED_MEDIA_TYPE, 
@@ -162,13 +171,8 @@ public interface SkinnyResource extends HttpHandler {
                         "Error extracting parameters from multipart form body", getLogger());
                 return;
             }
-        }
-        // TODO else handle the other verbs (GET, DELETE, HEAD should also require path parameters)
-        // TODO what about path parameters for PUT and POST? should they also not be passed in?
-        String qrystr = null;
-        pthix = mthwqrypath.indexOf("?");
-        if (pthix > 0) {
-            qrystr = mthwqrypath.substring(pthix+1);
+        } else if ("GET".equalsIgnoreCase(mthd) || "DELETE".equalsIgnoreCase(mthd) || "HEAD".equalsIgnoreCase(mthd)) {
+            // TODO else handle the other verbs (GET, DELETE, HEAD should also require path parameters)
         }
         Map<String, String> qryparams = null;
         if (qrystr != null && !qrystr.isBlank()) {
@@ -182,8 +186,18 @@ public interface SkinnyResource extends HttpHandler {
         }
         RestEntity result = null;
         try {
+            if (getLogger().isDebugEnabled()) {
+                StringBuilder sb = new StringBuilder("Calling handler [" + handlerdetail.name() + "] for method [" + mthd + "] with path [" + mthpath + "] formparms [");
+                if (formParams != null && !formParams.isEmpty()) formParams.forEach((k, v) -> sb.append(k + "=" + v + ", "));
+                sb.append("] queryparms [");
+                if (qryparams != null && !qryparams.isEmpty()) qryparams.forEach((k, v) -> sb.append(k + "=" + v + ", "));
+                sb.append("] body [" + reqdata + "]");
+                getLogger().debug(sb.toString());
+            }
             result = callRealMethod(handlerdetail, mthd, mthpath, formParams, qryparams, reqdata, contentType);
         } catch (Throwable t) {
+            System.out.println("Method [" + mthd + "] handler [" + handlerdetail.name() + "]: Exception caught " + t.getMessage());
+            t.printStackTrace();
         	RestResponseCode httpstatus = null;
         	String errmessage = null;
             if (t instanceof IllegalArgumentException) {

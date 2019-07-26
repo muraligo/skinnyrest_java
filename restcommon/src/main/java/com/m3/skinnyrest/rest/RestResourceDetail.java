@@ -28,8 +28,11 @@ public class RestResourceDetail {
     }
 
     public List<RestHandlerDetail> findMatchingHandlers(String path, String mthd) {
-        ArrayList<RestHandlerDetail> result = _handlers.stream().filter(h -> (h.path().equals(path) && h.method().equalsIgnoreCase(mthd)))
-                                                       .collect(Collector.of(ArrayList::new, ArrayList::add, (left, right) -> { left.addAll(right); return left; }));
+        ArrayList<RestHandlerDetail> result = _handlers.stream().filter(h -> {
+            String pathprfx = (h.path().indexOf("{") > 0) ? h.path().substring(0, h.path().indexOf("{")) : h.path();
+            // TODO Match the longest path including path parameters in between
+            return path.startsWith(pathprfx) && h.method().equalsIgnoreCase(mthd);
+        }).collect(Collector.of(ArrayList::new, ArrayList::add, (left, right) -> { left.addAll(right); return left; }));
         return result;
     }
 

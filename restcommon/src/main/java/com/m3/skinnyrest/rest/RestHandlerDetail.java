@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
 
 import com.m3.skinnyrest.SkinnyResource;
 import com.sun.net.httpserver.HttpContext;
@@ -49,6 +50,10 @@ public class RestHandlerDetail {
         List<RestParameter> params = new ArrayList<RestParameter>();
         params.addAll(_parameters.values());
         return params.stream().anyMatch(rp -> rp._type.equals(thetype));
+    }
+
+    public Stream<RestParameter> pathParameterStream() {
+        return _parameters.values().stream().filter(p -> RestParamType.PATH.equals(p._type));
     }
 
     class RestParameter {

@@ -7,8 +7,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 
@@ -27,6 +31,7 @@ import com.m3.skinnyrest.annotations.Path;
 import com.m3.skinnyrest.annotations.PathParam;
 import com.m3.skinnyrest.annotations.QueryParam;
 import com.m3.skinnyrest.rest.RestHandlerDetail.RestParamType;
+import com.m3.skinnyrest.rest.RestHandlerDetail.RestParameter;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpPrincipal;
@@ -193,5 +198,35 @@ public class RestUtil {
         URI requestURI = exchange.getRequestURI();
         String query = requestURI.getQuery();
         log.debug("\t" + query);
+    }
+
+    public static Map<String, Object> parseUrlPath(String mthpath, RestHandlerDetail handlerdetail) {
+		// TODO Auto-generated method stub
+        List<RestParameter> parmstrm = handlerdetail.pathParameterStream().collect(Collectors.toList());
+        int prmssz = parmstrm.size();
+        int prmix = 0;
+        Map<String, Object> result = null;
+        String declpath = handlerdetail.path();
+        int dpix = declpath.indexOf("{");
+        while (dpix > 0) {
+            int pthix = mthpath.indexOf("/", dpix);
+            if (pthix < 0) pthix = mthpath.length() - 1;
+            String value = mthpath.substring(dpix, pthix);
+            dpix++;
+            int dpix2 = declpath.indexOf("}", dpix);
+//            String nm2 = declpath.substring(dpix, dpix2);
+            if (prmix >= prmssz) // exhausted path parameters; skip the rest for now TODO error out
+                break;
+            RestParameter prm = parmstrm.get(prmix);
+            String name = prm.name();
+            if (result == null) {
+                result = new HashMap<String, Object>();
+            }
+            // For now everything is a String
+            // TODO Handle other data types
+            result.put(name, value);
+            dpix = declpath.indexOf("{", dpix2);
+        }
+        return result;
     }
 }

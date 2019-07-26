@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
@@ -36,6 +37,7 @@ import com.m3.skinnyrest.rest.RestHandlerDetail.RestParamType;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.m3.skinnyrest.rest.RestResourceDetail;
+import com.m3.skinnyrest.rest.RestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @RunWith(JUnitPlatform.class)
@@ -44,12 +46,44 @@ class SkinnyRestTest {
     private static final String FORM_DATA_PARM_PREFIX = FORM_DATA_PARM_START + ": form-data; name=\"";
 
     private static RestResourceDetail resourcedetail;
+    private static String getresult;
 
     private TestSkinnyResource service;
 
     @BeforeAll
     static void setupBeforeClass() throws Exception {
         resourcedetail = new RestResourceDetail("testskinny", "/skinnytest");
+        StringBuilder bodysb = new StringBuilder();
+        bodysb.append(System.lineSeparator());
+        bodysb.append("{");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"name\": ");
+        bodysb.append("\"johnsmith\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"type\": ");
+        bodysb.append("\"home\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"number\": ");
+        bodysb.append("\"2315\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"street\": ");
+        bodysb.append("\"Alhambra Ln\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"city\": ");
+        bodysb.append("\"Lost Angels\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"state\": ");
+        bodysb.append("\"Cali Fornia\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"postcode\": ");
+        bodysb.append("\"90210\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"country\": ");
+        bodysb.append("\"UF\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("}");
+        bodysb.append(System.lineSeparator());
+        getresult = bodysb.toString();
     }
 
     @BeforeEach
@@ -62,7 +96,7 @@ class SkinnyRestTest {
         handlerdetail2.addParameter(RestParamType.BODY, "data", null);
         RestHandlerDetail handlerdetail3 = resourcedetail.addHandler(null, "createFromJson", "PUT", "/createwithjson", service);
         handlerdetail3.addParameter(RestParamType.BODY, "data", null);
-        RestHandlerDetail handlerdetail4 = resourcedetail.addHandler(null, "getFromPathAndQuery", "GET", "/getwithparams", service);
+        RestHandlerDetail handlerdetail4 = resourcedetail.addHandler(null, "getFromPathAndQuery", "GET", "/getwithparams/{name}", service);
         handlerdetail4.addParameter(RestParamType.PATH, "name", null);
         handlerdetail4.addParameter(RestParamType.QUERY, "type", null);
     }
@@ -211,6 +245,8 @@ class SkinnyRestTest {
         bodysb.append("\"street\": ");
         bodysb.append("\"Alhambra Ln\"");
         bodysb.append(System.lineSeparator());
+        bodysb.append("}");
+        bodysb.append(System.lineSeparator());
         InputStream is = new ByteArrayInputStream(bodysb.toString().getBytes(StandardCharsets.UTF_8));
         when(exchange.getRequestBody()).thenReturn(is);
         try {
@@ -268,20 +304,23 @@ class SkinnyRestTest {
         bodysb.append("\"2315\",");
         bodysb.append(System.lineSeparator());
         bodysb.append("\"street\": ");
-        bodysb.append("\"Alhambra Ln\"");
+        bodysb.append("\"Alhambra Ln\",");
         bodysb.append(System.lineSeparator());
         bodysb.append("\"city\": ");
-        bodysb.append("\"Lost Angels\"");
+        bodysb.append("\"Lost Angels\",");
         bodysb.append(System.lineSeparator());
         bodysb.append("\"state\": ");
-        bodysb.append("\"Cali Fornia\"");
+        bodysb.append("\"Cali Fornia\",");
         bodysb.append(System.lineSeparator());
         bodysb.append("\"postcode\": ");
         bodysb.append("\"90210\",");
         bodysb.append(System.lineSeparator());
         bodysb.append("\"country\": ");
-        bodysb.append("\"UF\",");
+        bodysb.append("\"UF\"");
         bodysb.append(System.lineSeparator());
+        bodysb.append("}");
+        bodysb.append(System.lineSeparator());
+//        System.out.println(bodysb.toString());
         InputStream is = new ByteArrayInputStream(bodysb.toString().getBytes(StandardCharsets.UTF_8));
         when(exchange.getRequestBody()).thenReturn(is);
         try {
@@ -308,6 +347,48 @@ class SkinnyRestTest {
         // TODO Use argument captor and verify various things within
     }
 
+//    @SuppressWarnings("rawtypes")
+    @Test
+    void queryGetWithPathAndQuerySucceeds() {
+        HttpExchange exchange = Mockito.mock(HttpExchange.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        URI requestURI = mockRequestURI("/getwithparams/johnsmith?type=home");
+        Headers headers = Mockito.mock(Headers.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        when(headers.isEmpty()).thenReturn(true);
+        when(exchange.getRequestURI()).thenReturn(requestURI);
+        when(exchange.getRequestHeaders()).thenReturn(headers);
+        when(exchange.getRequestMethod()).thenReturn("GET");
+        OutputStream os = Mockito.mock(OutputStream.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        try {
+            doNothing().when(os).write((byte[])notNull());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+        when(exchange.getResponseBody()).thenReturn(os);
+        service.handle(exchange);
+        final Integer expsize = getresult.length() + 24; // Integer.valueOf(169);
+        final Integer expcode = Integer.valueOf(200);
+        try {
+        	ArgumentCaptor<Integer> statuscaptor = ArgumentCaptor.forClass(Integer.class);
+        	ArgumentCaptor<Long> bodylencaptor = ArgumentCaptor.forClass(Long.class);
+//            doAnswer((Answer) invocation -> {
+//                Integer respcode = (Integer)invocation.getArgument(0);
+//                Integer bodysize = (Integer)invocation.getArgument(1);
+//                System.out.println("Response being sent is [" + respcode + "] with body size [" + bodysize + "]");
+//                assertEquals(expcode, respcode);
+//                assertEquals(expsize, bodysize.intValue());
+//                return null;
+//            }).when(exchange).sendResponseHeaders(statuscaptor.capture(), bodylencaptor.capture());
+            verify(exchange).sendResponseHeaders(statuscaptor.capture(), bodylencaptor.capture());
+            assertEquals(expcode, statuscaptor.getValue());
+            assertEquals(expsize.intValue(), bodylencaptor.getValue().intValue());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+    }
+
     // Looks like URI is a final class and cannot be mocked
     // So need to create a real non-absolute, non-opaque URI with the corresponding path
     private URI mockRequestURI(String methodPath) {
@@ -329,6 +410,7 @@ class SkinnyRestTest {
         @Override
         public RestEntity callRealMethod(RestHandlerDetail handlerdetail, String mthd, String mthpath,
                                 Map<String, String> formParams, Map<String, String> qryparams, String reqdata, String contentType) {
+            Map<String, Object> pathparams = RestUtil.parseUrlPath(mthpath, handlerdetail);
             RestEntity result = null;
             if ("updateFromForm".equals(handlerdetail.name())) {
                 result = new StringResultEntity(updateFromForm(formParams.get("number"), formParams.get("street")));
@@ -336,6 +418,10 @@ class SkinnyRestTest {
                 result = new StringResultEntity(updateFromJson(reqdata));
             } else if ("createFromJson".equals(handlerdetail.name())) {
                 result = new StringResultEntity(createFromJson(reqdata));
+            } else if ("getFromPathAndQuery".equals(handlerdetail.name())) {
+                String name = (pathparams == null) ? null : (String)pathparams.get("name");
+                String type = qryparams.get("type");
+                result = new StringResultEntity(getFromPathAndQuery(name, type));
             }
             return result;
         }
@@ -457,44 +543,54 @@ class SkinnyRestTest {
             	    JsonToken token = parser.peek();
             	    switch (token) {
             	    case BEGIN_OBJECT:
+//            	        System.out.println("Begin Object found");
             	        parser.beginObject();
             	        inobject++;
             	        break;
             	    case END_OBJECT:
+//            	        System.out.println("End Object found");
             	        parser.endObject();
             	        // TODO ensure it is > 0 before doing this else it is an error
             	        inobject--;
             	        break;
             	    case BEGIN_ARRAY:
+//            	        System.out.println("Begin Array found");
             	        parser.beginArray();
             	        inarray++;
             	        break;
             	    case END_ARRAY:
+//            	        System.out.println("End Array found");
         			    parser.endArray();
             	        // TODO ensure it is > 0 before doing this else it is an error
             	        inarray--;
             	        break;
             	    case NAME:
+//            	        System.out.print("Name found");
             	        if (inarray > 0) parser.nextName(); // discard the name
             	        if (inobject != 1) parser.nextName(); // discard the name
             	        key = parser.nextName();
+//            	        System.out.println(" [" + key + "]");
             	        break;
             	    case BOOLEAN:
+//            	        System.out.println("Boolean found, unexpected, skipping");
             	        if (inarray > 0) parser.skipValue(); // discard the value
             	        if (inobject != 1) parser.skipValue(); // discard the value
             	        _LOG.warn("Unknown boolean item found with key=[" + key + "]");
     					parser.skipValue();
             	        break;
             	    case NUMBER:
+//            	        System.out.println("Number found, unexpected, skipping");
             	        if (inarray > 0) parser.skipValue(); // discard the value
             	        if (inobject != 1) parser.skipValue(); // discard the value
             	        _LOG.warn("Unknown number item found with key=[" + key + "]");
     					parser.skipValue();
             	        break;
             	    case STRING:
+//            	        System.out.print("String found");
             	        if (inarray > 0) parser.skipValue(); // discard the value
             	        if (inobject != 1) parser.skipValue(); // discard the value
             	        String value = parser.nextString();
+//            	        System.out.println(" [" + value + "]");
             	        if ("name".equalsIgnoreCase(key)) name = value;
             	        else if ("type".equalsIgnoreCase(key)) type = value;
             	        else if ("number".equalsIgnoreCase(key)) number = value;
@@ -530,6 +626,13 @@ class SkinnyRestTest {
         	    throw new IllegalArgumentException("ERROR: Invalid parameters");
         	}
         	return "SUCCESS";
+        }
+
+        String getFromPathAndQuery(String name, String type) {
+        	if (name == null || name.isBlank() || type == null || type.isBlank()) {
+        	    throw new IllegalArgumentException("ERROR: Invalid parameters");
+        	}
+        	return getresult;
         }
     }
 
