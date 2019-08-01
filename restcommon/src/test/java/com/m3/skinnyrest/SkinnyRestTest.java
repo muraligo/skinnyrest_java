@@ -99,6 +99,9 @@ class SkinnyRestTest {
         RestHandlerDetail handlerdetail4 = resourcedetail.addHandler(null, "getFromPathAndQuery", "GET", "/getwithparams/{name}", service);
         handlerdetail4.addParameter(RestParamType.PATH, "name", null);
         handlerdetail4.addParameter(RestParamType.QUERY, "type", null);
+        RestHandlerDetail handlerdetail5 = resourcedetail.addHandler(null, "getFromPathQueryBody", "GET", "/getwithparambody/{name}", service);
+        handlerdetail5.addParameter(RestParamType.PATH, "name", null);
+        handlerdetail5.addParameter(RestParamType.QUERY, "type", null);
     }
 
     @AfterEach
@@ -349,7 +352,7 @@ class SkinnyRestTest {
 
 //    @SuppressWarnings("rawtypes")
     @Test
-    void queryGetWithPathAndQuerySucceeds() {
+    void queryGetWithPathAndQueryNoBodySucceeds() {
         HttpExchange exchange = Mockito.mock(HttpExchange.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         URI requestURI = mockRequestURI("/getwithparams/johnsmith?type=home");
@@ -389,6 +392,58 @@ class SkinnyRestTest {
         }
     }
 
+    @Test
+    void queryGetWithPathQueryAndBodySucceeds() {
+        HttpExchange exchange = Mockito.mock(HttpExchange.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        URI requestURI = mockRequestURI("/getwithparams/johnsmith?type=home");
+        Headers headers = Mockito.mock(Headers.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        when(headers.isEmpty()).thenReturn(false);
+        when(headers.containsKey(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(true);
+        List<String> contentTypeLst = new ArrayList<String>();
+        contentTypeLst.add("application/json");
+        when(headers.get(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        when(exchange.getRequestURI()).thenReturn(requestURI);
+        when(exchange.getRequestHeaders()).thenReturn(headers);
+        when(exchange.getRequestMethod()).thenReturn("GET");
+        // build the body and return a Stream to it
+        StringBuilder bodysb = new StringBuilder();
+        bodysb.append(System.lineSeparator());
+        bodysb.append("{");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"postcode\": ");
+        bodysb.append("\"90210\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"country\": ");
+        bodysb.append("\"UF\"");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("}");
+        bodysb.append(System.lineSeparator());
+        InputStream is = new ByteArrayInputStream(bodysb.toString().getBytes(StandardCharsets.UTF_8));
+        when(exchange.getRequestBody()).thenReturn(is);
+        OutputStream os = Mockito.mock(OutputStream.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        try {
+            doNothing().when(os).write((byte[])notNull());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+        when(exchange.getResponseBody()).thenReturn(os);
+        service.handle(exchange);
+        final Integer expsize = getresult.length() + 24; // Integer.valueOf(169);
+        final Integer expcode = Integer.valueOf(200);
+        try {
+      	    ArgumentCaptor<Integer> statuscaptor = ArgumentCaptor.forClass(Integer.class);
+      	    ArgumentCaptor<Long> bodylencaptor = ArgumentCaptor.forClass(Long.class);
+            verify(exchange).sendResponseHeaders(statuscaptor.capture(), bodylencaptor.capture());
+            assertEquals(expcode, statuscaptor.getValue());
+            assertEquals(expsize.intValue(), bodylencaptor.getValue().intValue());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+    }
+
     // Looks like URI is a final class and cannot be mocked
     // So need to create a real non-absolute, non-opaque URI with the corresponding path
     private URI mockRequestURI(String methodPath) {
@@ -419,6 +474,10 @@ class SkinnyRestTest {
             } else if ("createFromJson".equals(handlerdetail.name())) {
                 result = new StringResultEntity(createFromJson(reqdata));
             } else if ("getFromPathAndQuery".equals(handlerdetail.name())) {
+                String name = (pathparams == null) ? null : (String)pathparams.get("name");
+                String type = qryparams.get("type");
+                result = new StringResultEntity(getFromPathAndQuery(name, type));
+            } else if ("getFromPathQueryBody".equals(handlerdetail.name())) {
                 String name = (pathparams == null) ? null : (String)pathparams.get("name");
                 String type = qryparams.get("type");
                 result = new StringResultEntity(getFromPathAndQuery(name, type));
@@ -630,6 +689,88 @@ class SkinnyRestTest {
 
         String getFromPathAndQuery(String name, String type) {
         	if (name == null || name.isBlank() || type == null || type.isBlank()) {
+        	    throw new IllegalArgumentException("ERROR: Invalid parameters");
+        	}
+        	return getresult;
+        }
+
+        String getFromPathQueryBody(String name, String type, String data) {
+        	if (name == null || name.isBlank() || type == null || type.isBlank() || data == null || data.isBlank()) {
+        	    throw new IllegalArgumentException("ERROR: Invalid parameters");
+        	}
+            String postcode = null;
+            String country = null;
+            String key = null;
+            int inobject = 0;
+            int inarray = 0;
+            try (InputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8)); 
+                    InputStreamReader isr = new InputStreamReader(is)) {
+            	JsonReader parser = new JsonReader(isr);
+            	while (parser.hasNext()) {
+            	    JsonToken token = parser.peek();
+            	    switch (token) {
+            	    case BEGIN_OBJECT:
+            	        parser.beginObject();
+            	        inobject++;
+            	        break;
+            	    case END_OBJECT:
+            	        parser.endObject();
+            	        // TODO ensure it is > 0 before doing this else it is an error
+            	        inobject--;
+            	        break;
+            	    case BEGIN_ARRAY:
+            	        parser.beginArray();
+            	        inarray++;
+            	        break;
+            	    case END_ARRAY:
+        			    parser.endArray();
+            	        // TODO ensure it is > 0 before doing this else it is an error
+            	        inarray--;
+            	        break;
+            	    case NAME:
+            	        if (inarray > 0) parser.nextName(); // discard the name
+            	        if (inobject != 1) parser.nextName(); // discard the name
+            	        key = parser.nextName();
+            	        break;
+            	    case BOOLEAN:
+            	        if (inarray > 0) parser.skipValue(); // discard the value
+            	        if (inobject != 1) parser.skipValue(); // discard the value
+            	        _LOG.warn("Unknown boolean item found with key=[" + key + "]");
+    					parser.skipValue();
+            	        break;
+            	    case NUMBER:
+            	        if (inarray > 0) parser.skipValue(); // discard the value
+            	        if (inobject != 1) parser.skipValue(); // discard the value
+            	        _LOG.warn("Unknown number item found with key=[" + key + "]");
+    					parser.skipValue();
+            	        break;
+            	    case STRING:
+            	        if (inarray > 0) parser.skipValue(); // discard the value
+            	        if (inobject != 1) parser.skipValue(); // discard the value
+            	        String value = parser.nextString();
+            	        if ("postcode".equalsIgnoreCase(key)) postcode = value;
+            	        else if ("country".equalsIgnoreCase(key)) country = value;
+            	        else _LOG.warn("Unknown data found with key=["+ key + "] value=[" + value + "]");
+            	        break;
+            	    case NULL:
+            	        if (inarray > 0) parser.nextNull(); // discard the value
+            	        if (inobject != 1) parser.nextNull(); // discard the value
+            	        _LOG.warn("Null value for key=[" + key + "]");
+            	        parser.nextNull(); // consume anyway
+            	        break;
+            	    case END_DOCUMENT:
+            	        _LOG.warn("End of Document Reached");
+            	        break;
+            	    default:
+            	        _LOG.warn("This part should never execute");
+            	        break;
+            	    }
+            	}
+            	parser.close();
+            } catch (IOException ioe) {
+                throw new IllegalStateException("ERROR: Reading and or parsing Json body", ioe);
+            }
+        	if (postcode == null || postcode.isBlank() || country == null || country.isBlank()) {
         	    throw new IllegalArgumentException("ERROR: Invalid parameters");
         	}
         	return getresult;
