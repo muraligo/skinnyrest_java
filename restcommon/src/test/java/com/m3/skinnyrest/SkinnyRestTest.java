@@ -102,6 +102,10 @@ class SkinnyRestTest {
         RestHandlerDetail handlerdetail5 = resourcedetail.addHandler(null, "getFromPathQueryBody", "GET", "/getwithparambody/{name}", service);
         handlerdetail5.addParameter(RestParamType.PATH, "name", null);
         handlerdetail5.addParameter(RestParamType.QUERY, "type", null);
+        handlerdetail5.addParameter(RestParamType.BODY, "data", null);
+        RestHandlerDetail handlerdetail6 = resourcedetail.addHandler(null, "updateFromQueryJson", "POST", "/updatewithqueryjson", service);
+        handlerdetail5.addParameter(RestParamType.BODY, "data", null);
+        handlerdetail6.addParameter(RestParamType.QUERY, "type", null);
     }
 
     @AfterEach
@@ -227,6 +231,61 @@ class SkinnyRestTest {
         HttpExchange exchange = Mockito.mock(HttpExchange.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         URI requestURI = mockRequestURI("/updatewithjson");
+        Headers headers = Mockito.mock(Headers.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        when(headers.isEmpty()).thenReturn(false);
+        when(headers.containsKey(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(true);
+        List<String> contentTypeLst = new ArrayList<String>();
+        contentTypeLst.add("application/json");
+        when(headers.get(HttpHelper.HEADER_CONTENT_TYPE)).thenReturn(contentTypeLst);
+        when(exchange.getRequestURI()).thenReturn(requestURI);
+        when(exchange.getRequestHeaders()).thenReturn(headers);
+        when(exchange.getRequestMethod()).thenReturn("POST");
+        // build the body and return a Stream to it
+        StringBuilder bodysb = new StringBuilder();
+        bodysb.append(System.lineSeparator());
+        bodysb.append("{");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"number\": ");
+        bodysb.append("\"2315\",");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("\"street\": ");
+        bodysb.append("\"Alhambra Ln\"");
+        bodysb.append(System.lineSeparator());
+        bodysb.append("}");
+        bodysb.append(System.lineSeparator());
+        InputStream is = new ByteArrayInputStream(bodysb.toString().getBytes(StandardCharsets.UTF_8));
+        when(exchange.getRequestBody()).thenReturn(is);
+        try {
+            doAnswer((Answer) invocation -> {
+                Integer respcode = (Integer)invocation.getArgument(0);
+                Integer expcode = Integer.valueOf(200);
+                Integer bodysize = (Integer)invocation.getArgument(1);
+                assertEquals(expcode, respcode);
+                assertTrue(bodysize > 0);
+                return null;
+            }).when(exchange).sendResponseHeaders(anyInt(), anyInt());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+        OutputStream os = Mockito.mock(OutputStream.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        try {
+            doNothing().when(os).write((byte[])notNull());
+        } catch (IOException ioe) {
+            // IGNORE
+        }
+        when(exchange.getResponseBody()).thenReturn(os);
+        service.handle(exchange);
+        // TODO Use argument captor and verify various things within
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Test
+    void updatePostWithJsonBodyQuerySucceeds() {
+        HttpExchange exchange = Mockito.mock(HttpExchange.class, 
+                withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
+        URI requestURI = mockRequestURI("/updatewithqueryjson?type=home");
         Headers headers = Mockito.mock(Headers.class, 
                 withSettings().lenient().defaultAnswer(RETURNS_SMART_NULLS));
         when(headers.isEmpty()).thenReturn(false);
@@ -481,6 +540,9 @@ class SkinnyRestTest {
                 String name = (pathparams == null) ? null : (String)pathparams.get("name");
                 String type = qryparams.get("type");
                 result = new StringResultEntity(getFromPathAndQuery(name, type));
+            } else if ("updateFromQueryJson".equals(handlerdetail.name())) {
+                String type = qryparams.get("type");
+                result = new StringResultEntity(updateFromJson(type, reqdata));
             }
             return result;
         }
@@ -500,6 +562,88 @@ class SkinnyRestTest {
 
         String updateFromJson(String data) {
             if (data == null || data.isBlank()) {
+        	    throw new IllegalArgumentException("ERROR: Invalid parameters");
+            }
+            String number = null;
+            String street = null;
+            String key = null;
+            int inobject = 0;
+            int inarray = 0;
+            try (InputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8)); 
+                    InputStreamReader isr = new InputStreamReader(is)) {
+            	JsonReader parser = new JsonReader(isr);
+            	while (parser.hasNext()) {
+            	    JsonToken token = parser.peek();
+            	    switch (token) {
+            	    case BEGIN_OBJECT:
+            	        parser.beginObject();
+            	        inobject++;
+            	        break;
+            	    case END_OBJECT:
+            	        parser.endObject();
+            	        // TODO ensure it is > 0 before doing this else it is an error
+            	        inobject--;
+            	        break;
+            	    case BEGIN_ARRAY:
+            	        parser.beginArray();
+            	        inarray++;
+            	        break;
+            	    case END_ARRAY:
+        			    parser.endArray();
+            	        // TODO ensure it is > 0 before doing this else it is an error
+            	        inarray--;
+            	        break;
+            	    case NAME:
+            	        if (inarray > 0) parser.nextName(); // discard the name
+            	        if (inobject != 1) parser.nextName(); // discard the name
+            	        key = parser.nextName();
+            	        break;
+            	    case BOOLEAN:
+            	        if (inarray > 0) parser.skipValue(); // discard the value
+            	        if (inobject != 1) parser.skipValue(); // discard the value
+            	        _LOG.warn("Unknown boolean item found with key=[" + key + "]");
+    					parser.skipValue();
+            	        break;
+            	    case NUMBER:
+            	        if (inarray > 0) parser.skipValue(); // discard the value
+            	        if (inobject != 1) parser.skipValue(); // discard the value
+            	        _LOG.warn("Unknown number item found with key=[" + key + "]");
+    					parser.skipValue();
+            	        break;
+            	    case STRING:
+            	        if (inarray > 0) parser.skipValue(); // discard the value
+            	        if (inobject != 1) parser.skipValue(); // discard the value
+            	        String value = parser.nextString();
+            	        if ("number".equalsIgnoreCase(key)) number = value;
+            	        else if ("street".equalsIgnoreCase(key)) street = value;
+            	        else _LOG.warn("Unknown data found with key=["+ key + "] value=[" + value + "]");
+            	        break;
+            	    case NULL:
+            	        if (inarray > 0) parser.nextNull(); // discard the value
+            	        if (inobject != 1) parser.nextNull(); // discard the value
+            	        _LOG.warn("Null value for key=[" + key + "]");
+            	        parser.nextNull(); // consume anyway
+            	        break;
+            	    case END_DOCUMENT:
+            	        _LOG.warn("End of Document Reached");
+            	        break;
+            	    default:
+            	        _LOG.warn("This part should never execute");
+            	        break;
+            	    }
+            	}
+            	parser.close();
+            } catch (IOException ioe) {
+                throw new IllegalStateException("ERROR: Reading and or parsing Json body", ioe);
+            }
+        	if (number == null || number.isBlank() || street == null || street.isBlank()) {
+        	    throw new IllegalArgumentException("ERROR: Invalid parameters");
+        	}
+        	return "SUCCESS";
+        }
+
+        String updateFromJson(String type, String data) {
+            if (type == null || type.isBlank() || data == null || data.isBlank()) {
         	    throw new IllegalArgumentException("ERROR: Invalid parameters");
             }
             String number = null;
